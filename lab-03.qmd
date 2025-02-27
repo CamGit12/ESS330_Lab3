@@ -1,0 +1,167 @@
+---
+title: "lab-03"
+subtitle: "ESS 330-Lab 3-COVID-19"
+author: 
+  - name: "Cameron MCLaughlin"
+  - email: "Cam12@colostate.edu"
+format: html
+---
+
+# Lab 03 Covid
+
+```{r}
+#load packages
+library(tidyverse)
+library(flextable)
+library(zoo)
+```
+
+```{r}
+#Question1- Read csv from webpage
+covid_raw <- read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv")
+
+```
+
+```{r}
+#Question 2-my date object
+txt <- "2022-02-01"
+class(txt)
+date_example <- as.Date(txt)
+class(date_example)
+
+my.date <- as.Date("2022-02-01")
+my.state <- "Colorado"
+class(my.date)
+```
+
+```{r}
+#-leave raw data, start cleaning
+library(dplyr)
+covid_data_CO <- covid_raw %>%
+  filter(state == "Colorado") %>%
+  group_by(county) %>%
+  arrange(date) %>%
+  mutate(new_cases = cases - lag(cases),
+         new_deaths = deaths - lag(deaths)) %>% ungroup()
+```
+
+```{r}
+#Question 3: Normalizing Data
+pop_data <- read_csv('https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv') %>%
+  mutate(
+    STATE = sprintf("%02d", as.numeric(STATE)),
+    COUNTY = sprintf("%03d", as.numeric(COUNTY)),
+    fips = paste0(STATE, COUNTY)
+  ) %>%
+  select(fips, contains("NAME"), contains("2021")) %>%
+  filter(str_sub(fips, 3, 5) != "000")
+
+
+names(pop_data)
+dim(pop_data)
+glimpse(pop_data)
+
+colorado_pop2021 <- pop_data %>%
+  filter(STNAME == "Colorado") %>%
+  select(STNAME, POPESTIMATE2021, fips)
+
+range(colorado_pop2021$POPESTIMATE2021)
+
+combined_data <- covid_data_CO %>%
+  inner_join(colorado_pop2021, by = "fips") %>%
+  mutate(
+    per_capita_cumulative_cases = cases / POPESTIMATE2021,
+    per_capita_new_cases = new_cases / POPESTIMATE2021,
+    per_capita_new_deaths = new_deaths / POPESTIMATE2021)
+
+#top 5 counties with the most cumulative cases
+combined_data %>% 
+  filter(date == my.date)  %>%
+  slice_max(per_capita_cumulative_cases, n = 5) %>%
+  select(Date = date, County = county, `Per Capita Cumulative Cases` = per_capita_cumulative_cases) %>%
+  flextable()  %>%
+  set_caption("Top Counties by Per Capita Cumulative Cases on 2021-02-01")
+
+#top 5 counties with most new cases per cap
+combined_data %>% 
+  filter(date == my.date)  %>%
+  slice_max(per_capita_new_cases, n = 5) %>%
+  select(Date = date, County = county, `Per Capita New Cases` = per_capita_new_cases) %>%
+  flextable()  %>%
+  set_caption("Top Counties by Per Capita New Cases on 2021-02-01")
+```
+
+The range for CO counties populations in 2021 was 741 to 737,287.
+
+```{r}
+#Question 4: Rolling Thresholds
+#step 1-Filter data to last 14 days
+max_date <- max(combined_data$date, na.rm = TRUE)
+covid_last14 <- combined_data %>%
+  filter(date >= (max_date - 13) & date <= max_date)
+
+#Calc total new cases/100,000 people over last 14
+last14_casesummary <- covid_last14 %>%
+  group_by(fips, county, POPESTIMATE2021) %>%
+  summarize(
+    total_new_cases = sum(new_cases, na.rm = TRUE), .groups = "drop") %>% 
+  mutate(new_cases_per_100k = (total_new_cases / POPESTIMATE2021) * 100000)
+
+#make table
+top5_counties <- last14_casesummary %>%
+  slice_max(new_cases_per_100k, n = 5) %>%
+  select(County = county,
+         `Total New Cases` = total_new_cases,
+         `New Cases per 100k` = new_cases_per_100k)
+
+top5_counties %>%
+  flextable() %>%
+  set_caption("Top 5 Colorado Counties by New Cases per 100,000 in the Last 14 Days")
+
+#count exceptions
+watchlist_count <- last14_casesummary %>%
+  filter(new_cases_per_100k > 100) %>%
+  nrow()
+
+print(watchlist_count)
+
+```
+
+There were 53 counties that exceeded this watchlist parameter: “More than 100 new cases per 100,000 residents over the past 14 days”.
+
+```{r}
+#Question 5: Death Toll
+
+tmp.date = as.Date("2022-02-01")
+lubridate::year(tmp.date)
+lubridate::month(tmp.date)
+lubridate::yday(tmp.date)
+
+covid_deaths_2021 <- combined_data %>%
+  filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-12-31")) %>% group_by(fips, county) %>%
+  summarize(total_covid_deaths_2021 = sum(deaths, na.rm = TRUE), .groups = "drop")
+
+deaths_ratio <- covid_deaths_2021 %>%
+  inner_join(pop_data %>% select(fips, DEATHS2021), by = "fips") %>%
+  mutate(covid_death_ratio = (total_covid_deaths_2021 / DEATHS2021) * 100)
+         
+high_ratio_counties <- deaths_ratio %>%
+  filter(covid_death_ratio >= 20)
+
+ggplot(high_ratio_counties, aes(x = reorder(county, covid_death_ratio), y = covid_death_ratio)) +
+  geom_col(fill = "tomato") +
+  coord_flip() +
+  labs(
+    title = "Colorado Counties with ≥ 20% COVID-19 Deaths in 2021",
+    x = "County",
+    y = "COVID Deaths (% of Total 2021 Deaths)"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+#Question 6- Multi state
+#prep states
+
+```
