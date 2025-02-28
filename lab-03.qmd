@@ -266,7 +266,7 @@ Based on this map., the COVID weighted center mean looks like it started around 
 
 Additionally, the trend Westward into Colorado can be understood as surges in California as a population center for the disease certainly drew the weighted center towards the West during peak periods between Jan and April.
 
-```{r}
+```{r, fig.width=12, fig.height=6, out.width="100%"}
 #Question 8
 #compute WMC Deaths
 #compute wmc
@@ -293,5 +293,5 @@ P_deaths <- ggplot() +
 
 #patchwork
 library(patchwork)
-P_cases | P_deaths
+P_cases / P_deaths + plot_layout(widths = c(1, 1))
 ```
