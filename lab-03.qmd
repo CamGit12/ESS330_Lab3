@@ -3,7 +3,6 @@ title: "lab-03"
 subtitle: "ESS 330-Lab 3-COVID-19"
 author: 
   - name: "Cameron MCLaughlin"
-  - email: "Cam12@colostate.edu"
 format: html
 ---
 
