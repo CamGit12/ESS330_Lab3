@@ -18,11 +18,15 @@ library(lubridate)
 library(dplyr)
 ```
 
+## Question 1
+
 ```{r}
 #Question1- Read csv from webpage
 covid_raw <- read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv")
 
 ```
+
+## Question 2
 
 ```{r}
 #Question 2-my date object
@@ -46,6 +50,8 @@ covid_data_CO <- covid_raw %>%
   mutate(new_cases = cases - lag(cases),
          new_deaths = deaths - lag(deaths)) %>% ungroup()
 ```
+
+## Question 3
 
 ```{r}
 #Question 3: Normalizing Data
@@ -95,6 +101,8 @@ combined_data %>%
 
 The range for CO counties populations in 2021 was 741 to 737,287.
 
+## Question 4
+
 ```{r}
 #Question 4: Rolling Thresholds
 #step 1-Filter data to last 14 days
@@ -131,6 +139,8 @@ print(watchlist_count)
 
 There were 53 counties that exceeded this watchlist parameter: “More than 100 new cases per 100,000 residents over the past 14 days”.
 
+## Question 5
+
 ```{r}
 #Question 5: Death Toll
 
@@ -161,6 +171,8 @@ ggplot(high_ratio_counties, aes(x = reorder(county, covid_death_ratio), y = covi
   theme_minimal()
 
 ```
+
+## Question 6
 
 ```{r}
 #Question 6- Multi state
@@ -230,6 +242,8 @@ Scaling by population results in a better comparison. Without this element, we a
 
 In this way, scaling by population makes New York look better than Alabama because now the cases look smaller (due to scaling by pop.) versus a smaller state like Alabama where scaling by population makes the cases look worse.
 
+## Question 7
+
 ```{r}
 #7-Space/Time
 statecoords <- read_csv("data/county-centroids.csv")
@@ -266,6 +280,8 @@ Based on this map., the COVID weighted center mean looks like it started around 
 
 Additionally, the trend Westward into Colorado can be understood as surges in California as a population center for the disease certainly drew the weighted center towards the West during peak periods between Jan and April.
 
+## Question 8
+
 ```{r, fig.width=12, fig.height=6, out.width="100%"}
 #Question 8
 #compute WMC Deaths
@@ -293,5 +309,5 @@ P_deaths <- ggplot() +
 
 #patchwork
 library(patchwork)
-P_cases / P_deaths + plot_layout(widths = c(1, 1))
+P_cases / P_deaths
 ```
