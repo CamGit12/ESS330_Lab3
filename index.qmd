@@ -1,12 +1,13 @@
 ---
 title: "index"
-subtitle: "ESS 330-Lab 3-COVID-19"
+subtitle: "ESS 330 - Lab 3 - COVID-19"
 author: 
-  - name: "Cameron MCLaughlin"
+  - name: "Cameron McLaughlin"
 format: html
 execute:
   echo: true
 output-dir: "C:/Users/laxca/Softwares/Git/ESS330_Lab3/docs"
+
 ---
 
 # Lab 03 Covid
