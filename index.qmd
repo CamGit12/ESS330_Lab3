@@ -7,7 +7,12 @@ format: html
 execute:
   echo: true
 output-dir: "C:/Users/laxca/Softwares/Git/ESS330_Lab3/docs"
-
+knitr:
+  opts_chunk:
+    fig.path: "C:/Users/laxca/Softwares/Git/ESS330_Lab3/img/"
+    fig.show: "hold"
+    message: false
+    warning: false
 ---
 
 # Lab 03 Covid
@@ -322,7 +327,8 @@ ggplot() +
        size = "Total Cases") + theme_minimal()
 
 ```
-The WMC of Covid cases in the US looks to be weighted towards the East coast, likely explained due to the higher population of states in the Eastern US. As time passes, we can also see that there was pull from both the East and West coasts, with the WMC sitting around Illinois but spreading out as covid spread across the US. Additionally, we see a spread towards the later months of the year to the south, which could be explained by later hotspots in Florida, where restrictions and prevention measures were less severe. 
+
+The WMC of Covid cases in the US looks to be weighted towards the East coast, likely explained due to the higher population of states in the Eastern US. As time passes, we can also see that there was pull from both the East and West coasts, with the WMC sitting around Illinois but spreading out as covid spread across the US. Additionally, we see a spread towards the later months of the year to the south, which could be explained by later hotspots in Florida, where restrictions and prevention measures were less severe.
 
 ## Question 8
 
@@ -393,4 +399,5 @@ P_deaths <- ggplot() +
 final_plot <- P_cases + P_deaths + plot_layout(ncol = 2)
 print(final_plot)
 ```
-Here in this plot illustrating the WMC of both Cases and Deaths by Covid in the US, we can find that there was a very similar shape of origination of Covid. Additionally, we find that both cases and deaths were similarly spatially spread across the US, but there are sonme key spatial-temporal differences. One differences we find is the way that deaths is found spreading Northeast of the center. This movement of deaths can likely be explained by overwhelmed hospitals in the denser US East Coast states. Additionally, we find a later hotspot of deaths in Florida, likely explained by a large old-age retiree community and less restrictions which allowed for the spread we see as the cases also spread towards Florida during a similar period. Ulitmately both plots tell a similar story but allow for more information to be gained when comparing the two. 
+
+Here in this plot illustrating the WMC of both Cases and Deaths by Covid in the US, we can find that there was a very similar shape of origination of Covid. Additionally, we find that both cases and deaths were similarly spatially spread across the US, but there are sonme key spatial-temporal differences. One differences we find is the way that deaths is found spreading Northeast of the center. This movement of deaths can likely be explained by overwhelmed hospitals in the denser US East Coast states. Additionally, we find a later hotspot of deaths in Florida, likely explained by a large old-age retiree community and less restrictions which allowed for the spread we see as the cases also spread towards Florida during a similar period. Ulitmately both plots tell a similar story but allow for more information to be gained when comparing the two.
