@@ -34,7 +34,7 @@ library(patchwork)
 ```
 
 ## Question 1
-
+fig.path="figures/"
 ```{r}
 #Question1- Read csv from webpage
 covid_raw <- read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv")
@@ -95,7 +95,8 @@ covid_data_CO %>%
 
 ## Question 3
 
-```{r}
+```{r, fig.path="docs/figures/", fig.ext="png"}
+
 #Question 3: Normalizing Data
 pop_raw <- read_csv('https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv') %>%
   mutate(
@@ -144,7 +145,7 @@ Part 3: The range for CO counties populations in 2022 was 741 to 737,287.
 
 ## Question 4
 
-```{r}
+```{r, fig.path="docs/figures/", fig.ext="png"}
 #Question 4: Rolling Thresholds
 
 #step 1-Filter data to last 14 days
@@ -182,7 +183,7 @@ There were 53 counties that exceeded this watchlist parameter: “More than 100 
 
 ## Question 5
 
-```{r}
+```{r, fig.path="docs/figures/", fig.ext="png"}
 #Question 5: Death Toll
 
 my.date = as.Date("2022-02-01")
@@ -211,7 +212,7 @@ ggplot(high_ratio_counties, aes(x = reorder(county, covid_death_ratio), y = covi
 
 ## Question 6
 
-```{r}
+```{r, fig.path="docs/figures/", fig.ext="png"}
 #Question 6- Multi state
 
 #prep states
@@ -278,7 +279,7 @@ In this way, scaling by population makes New York look better than Alabama becau
 
 ## Question 7
 
-```{r}
+```{r, fig.path="docs/figures/", fig.ext="png"}
 #7-Space/Time
 statecoords <- read_csv("data/county-centroids.csv") %>% 
   select(fips, LAT, LON) %>%
@@ -326,7 +327,7 @@ The WMC of Covid cases in the US looks to be weighted towards the East coast, li
 
 ## Question 8
 
-```{r, fig.width=12, fig.height=6, out.width="100%"}
+```{r, fig.width=12, fig.height=6, out.width="100%", fig.path="docs/figures/", fig.ext="png"}
 # Question 8
 
 # Filter data
