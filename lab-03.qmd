@@ -4,10 +4,22 @@ subtitle: "ESS 330-Lab 3-COVID-19"
 author: 
   - name: "Cameron MCLaughlin"
 format: html
+execute:
+  echo: true
 output-dir: "C:/Users/laxca/Softwares/Git/ESS330_Lab3/docs"
 ---
 
 # Lab 03 Covid
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.show = "hold",
+  message = FALSE)
+
+#Code Outputs Global Settings
+```
 
 ```{r}
 #load packages
@@ -17,6 +29,8 @@ library(zoo)
 library(readr)
 library(lubridate)
 library(dplyr)
+library(maps)
+library(patchwork)
 ```
 
 ## Question 1
@@ -43,34 +57,60 @@ class(my.date)
 
 ```{r}
 #-leave raw data, start cleaning
-library(dplyr)
+
+#clean covid raw
+covid_raw <- covid_raw %>% 
+  na.omit()
+
+#colorado dataframe with new cases and new deaths
 covid_data_CO <- covid_raw %>%
   filter(state == "Colorado") %>%
-  group_by(county) %>%
+  group_by(county, fips) %>%
   arrange(date) %>%
   mutate(new_cases = cases - lag(cases),
          new_deaths = deaths - lag(deaths)) %>% ungroup()
+
+#clean covid_data_co
+covid_data_CO <- covid_data_CO %>% 
+  na.omit()
+
+
+#top 5 counties with most cumulative cases
+
+covid_data_CO %>% 
+  filter(date == my.date)  %>%
+  slice_max(cases, n = 5) %>%
+  select(Date = date, County = county, 'Cumulative Cases' = cases) %>%
+  flextable()  %>%
+  add_header_lines(paste0("Top 5 Counties by Cumulative Cases on ", my.date))
+
+#top 5 counties with most new cases
+covid_data_CO %>% 
+  filter(date == my.date)  %>%
+  slice_max(new_cases, n = 5) %>%
+  select(Date = date, County = county, `New Cases` = new_cases) %>%
+  flextable()  %>%
+  add_header_lines(paste0("Top 5 Counties by New Cases on ", my.date))
 ```
 
 ## Question 3
 
 ```{r}
 #Question 3: Normalizing Data
-pop_data <- read_csv('https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv') %>%
+pop_raw <- read_csv('https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv') %>%
   mutate(
     STATE = sprintf("%02d", as.numeric(STATE)),
     COUNTY = sprintf("%03d", as.numeric(COUNTY)),
     fips = paste0(STATE, COUNTY)
   ) %>%
-  select(fips, contains("NAME"), contains("2021")) %>%
+  select(fips, contains("NAME"), contains("2021"), DEATHS2021) %>%
   filter(str_sub(fips, 3, 5) != "000")
 
+names(pop_raw)
+dim(pop_raw)
+glimpse(pop_raw)
 
-names(pop_data)
-dim(pop_data)
-glimpse(pop_data)
-
-colorado_pop2021 <- pop_data %>%
+colorado_pop2021 <- pop_raw %>%
   filter(STNAME == "Colorado") %>%
   select(STNAME, POPESTIMATE2021, fips)
 
@@ -89,7 +129,7 @@ combined_data %>%
   slice_max(per_capita_cumulative_cases, n = 5) %>%
   select(Date = date, County = county, `Per Capita Cumulative Cases` = per_capita_cumulative_cases) %>%
   flextable()  %>%
-  set_caption("Top Counties by Per Capita Cumulative Cases on 2021-02-01")
+  add_header_lines(paste0("Top Counties by Per Capita Cumulative Cases on ", my.date))
 
 #top 5 counties with most new cases per cap
 combined_data %>% 
@@ -97,15 +137,16 @@ combined_data %>%
   slice_max(per_capita_new_cases, n = 5) %>%
   select(Date = date, County = county, `Per Capita New Cases` = per_capita_new_cases) %>%
   flextable()  %>%
-  set_caption("Top Counties by Per Capita New Cases on 2021-02-01")
+  add_header_lines(paste0("Top Counties by Per Capita New Cases on ", my.date))
 ```
 
-The range for CO counties populations in 2021 was 741 to 737,287.
+Part 3: The range for CO counties populations in 2022 was 741 to 737,287.
 
 ## Question 4
 
 ```{r}
 #Question 4: Rolling Thresholds
+
 #step 1-Filter data to last 14 days
 max_date <- max(combined_data$date, na.rm = TRUE)
 covid_last14 <- combined_data %>%
@@ -127,12 +168,11 @@ top5_counties <- last14_casesummary %>%
 
 top5_counties %>%
   flextable() %>%
-  set_caption("Top 5 Colorado Counties by New Cases per 100,000 in the Last 14 Days")
+  add_header_lines("Top 5 Colorado Counties by New Cases per 100,000 in the Last 14 Days")
 
 #count exceptions
 watchlist_count <- last14_casesummary %>%
-  filter(new_cases_per_100k > 100) %>%
-  nrow()
+  filter(new_cases_per_100k > 100) %>% nrow()
 
 print(watchlist_count)
 
@@ -145,17 +185,17 @@ There were 53 counties that exceeded this watchlist parameter: “More than 100 
 ```{r}
 #Question 5: Death Toll
 
-tmp.date = as.Date("2022-02-01")
-lubridate::year(tmp.date)
-lubridate::month(tmp.date)
-lubridate::yday(tmp.date)
+my.date = as.Date("2022-02-01")
+lubridate::year(my.date)
+lubridate::month(my.date)
+lubridate::yday(my.date)
 
 covid_deaths_2021 <- combined_data %>%
   filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-12-31")) %>% group_by(fips, county) %>%
-  summarize(total_covid_deaths_2021 = sum(deaths, na.rm = TRUE), .groups = "drop")
+  summarize(total_covid_deaths_2021 = sum(new_deaths, na.rm = TRUE), .groups = "drop")
 
 deaths_ratio <- covid_deaths_2021 %>%
-  inner_join(pop_data %>% select(fips, DEATHS2021), by = "fips") %>%
+  inner_join(pop_raw %>% select(fips, DEATHS2021), by = "fips") %>%
   mutate(covid_death_ratio = (total_covid_deaths_2021 / DEATHS2021) * 100)
          
 high_ratio_counties <- deaths_ratio %>%
@@ -163,13 +203,9 @@ high_ratio_counties <- deaths_ratio %>%
 
 ggplot(high_ratio_counties, aes(x = reorder(county, covid_death_ratio), y = covid_death_ratio)) +
   geom_col(fill = "tomato") +
-  coord_flip() +
-  labs(
-    title = "Colorado Counties with ≥ 20% COVID-19 Deaths in 2021",
+  coord_flip() + labs(title = "Colorado Counties with ≥ 20% COVID-19 Deaths in 2021",
     x = "County",
-    y = "COVID Deaths (% of Total 2021 Deaths)"
-  ) +
-  theme_minimal()
+    y = "COVID Deaths (% of Total 2021 Deaths)") + theme_minimal()
 
 ```
 
@@ -181,12 +217,10 @@ ggplot(high_ratio_counties, aes(x = reorder(county, covid_death_ratio), y = covi
 #prep states
 states_daily_cases <- covid_raw %>%
   filter(state %in% c("New York", "Colorado", "Alabama", "Ohio")) %>%
-  group_by(state, date) %>%
-  mutate(
-    new_cases = cases - lag(cases),
-    new_deaths = deaths - lag(deaths)
-  ) %>%
-  summarize(daily_cases = sum(new_cases, na.rm = TRUE), .groups = "drop")
+  group_by(state, county) %>%
+  arrange(date, .by_group = TRUE) %>% 
+  mutate(new_cases = pmax(cases - lag(cases), 0)) %>%
+  ungroup() %>% group_by(state, date) %>% summarize(daily_cases = sum(new_cases, na.rm = TRUE), .groups = "drop")
 
 #prep census (01 is AL, 08 is CO, 36 is NY, 39 is OH)
 states_popdata <-read_csv('https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv') %>%
@@ -200,115 +234,162 @@ states_popdata <-read_csv('https://www2.census.gov/programs-surveys/popest/datas
 #pop to state level
 states_pop <- states_popdata %>%
   group_by(STNAME) %>%
-  summarize(pop_2021 = sum(POPESTIMATE2021), .groups = "drop")
+  summarize(pop_2021 = sum(POPESTIMATE2021, na.rm = TRUE), .groups = "drop")
 
 #join the two
 state_cases_with_pop <- states_daily_cases %>%
-  full_join(states_pop, by = c("state" = "STNAME"))
+  left_join(states_pop, by = c("state" = "STNAME"))
 
 #Compute the rolling 7day mean
 state_cases_with_pop <- state_cases_with_pop %>%
   group_by(state) %>%
-  mutate(
-    rolling_mean_7day = rollmean(daily_cases, k = 7, fill = NA, align = "center"),
-    cases_per_100k = (daily_cases / pop_2021) * 100000,
-    rolling_mean_7day_per_100k = rollmean(cases_per_100k, k = 7, fill = NA, align = "center")) %>% ungroup()
+  mutate(cases_per_100k = (daily_cases / pop_2021) * 100000,
+         rolling_mean_7day_per_100k = rollmean(cases_per_100k, k = 7, fill = NA, align = "center")) %>% ungroup()
 
 #plot 1- new cases with rolling mean
 ggplot(state_cases_with_pop, aes(x = date)) +
   geom_col(aes(y = daily_cases), fill = "blue", alpha = 0.4) +
-  geom_line(aes(y = rolling_mean_7day), color = "red", linewidth = 1.3, na.rm = TRUE) +
+  geom_line(aes(y = rolling_mean_7day_per_100k), color = "red", linewidth = 1.3, na.rm = TRUE) +
   facet_wrap(~ state, scales = "free_y") +
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") +
   labs(
     title = "New Daily COVID Cases and 7-Day Rolling Mean",
     x = "Date",
-    y = "Daily New Cases"
-  ) +
-  theme_minimal()
+    y = "Daily New Cases") + theme_minimal() + 
+    theme(strip.text = element_text(size = 10),
+          axis.text.x = element_text(angle = 45, hjust = 1))
 
 #plot 2
 ggplot(state_cases_with_pop, aes(x = date, y = rolling_mean_7day_per_100k, color = state)) +
   geom_line() +
-  labs(
-    title = "7 Day Rolling Avg of COVID Cases per 100k Citizens",
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") +
+  labs(title = "7 Day Rolling Avg of COVID Cases per 100k Citizens",
     x = "Date",
     y = "Cases per 100k",
     color = "State") +
-  theme_minimal()
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust =1))
 ```
 
 Analysis:
 
 Scaling by population results in a better comparison. Without this element, we are comparing small states to big states without regard to their size, which strongly impacts the number of cases they have. In this way, scaling by population keeps us from comparing "apples to oranges".
 
-In this way, scaling by population makes New York look better than Alabama because now the cases look smaller (due to scaling by pop.) versus a smaller state like Alabama where scaling by population makes the cases look worse.
+In this way, scaling by population makes New York look better than Alabama because Alabamas smaller population results in its per capita cases being higher (due to scaling by pop.)
 
 ## Question 7
 
 ```{r}
 #7-Space/Time
-statecoords <- read_csv("data/county-centroids.csv")
+statecoords <- read_csv("data/county-centroids.csv") %>% 
+  select(fips, LAT, LON) %>%
+  mutate(fips = as.character(fips))
 
-Covidspatial <- covid_raw %>% 
-  full_join(statecoords, by = c("fips" = "fips"))
+all_dates <- expand.grid(fips = unique(statecoords$fips), date = unique(covid_raw$date))
+
+covid_raw <- all_dates %>%
+  left_join(covid_raw, by = c("fips", "date")) %>%
+  mutate(cases = ifelse(is.na(cases), 0, cases)) %>%
+  arrange(fips, date) %>%
+  group_by(fips) %>%  
+  mutate(new_cases = pmax(cases - lag(cases), 0, na.rm = TRUE)) %>% 
+  ungroup()
+
+#make DF, fix the filter to get correct number of daily points
+Covidspatial <- covid_raw %>%
+  group_by(fips, date) %>% 
+  summarize(daily_cases = sum(new_cases, na.rm = TRUE), .groups = "drop") %>%
+  inner_join(statecoords, by = "fips")
+
 
 #compute wmc
-wmc_df <- Covidspatial %>% group_by(date) %>% 
- summarize(
-    total_cases = sum(cases, na.rm = TRUE),
-    WMC_LONG = sum(LON * cases, na.rm = TRUE) / sum(cases, na.rm = TRUE),
-    WMC_LAT = sum(LAT * cases, na.rm = TRUE) / sum(cases, na.rm = TRUE),
-    month = format(date, "%m"), .groups = "drop")
-
-wmc_cases_df <- wmc_df %>%
-  mutate(month = as.factor(month))
+wmc_df <- Covidspatial %>%
+  group_by(date) %>%
+  summarise(
+    total_cases = sum(daily_cases, na.rm = TRUE),
+    WMC_LONG = ifelse(total_cases > 0, sum(LON * daily_cases, na.rm = TRUE) / total_cases, NA), WMC_LAT = ifelse(total_cases > 0, sum(LAT * daily_cases, na.rm = TRUE) / total_cases, NA), month = format(date, "%m"), .groups = "drop") %>% mutate(month = as.factor(month))
 
 
+#plot
 ggplot() +
   borders("state", fill = "gray90", colour = "white") +
-  geom_point(data = wmc_cases_df, aes(x = WMC_LONG, y = WMC_LAT, colour = month, size = total_cases), alpha = 0.5) +
+  geom_point(data = wmc_df, aes(x = WMC_LONG, y = WMC_LAT, colour = month, size = total_cases), alpha = 0.5) +
   scale_size_continuous(range = c(2, 10)) +
   labs(title = "Weighted Mean Center (WMC) of Covid Cases in US",
        x = "Longitude",
        y = "Latitude",
        color = "Month",
-       size = "Total Cases") + 
-  theme_minimal()
+       size = "Total Cases") + theme_minimal()
 
 ```
-
-Based on this map., the COVID weighted center mean looks like it started around 35\~40 Lat, -90 Long. According to the first confirmed COVID case being reported from Illinois, and there being the large population center of Chicago there, this map suggests there as the weighted center then a strong movement trend towards the southward/southeastward. Based on state by state lock downs and reopenings, I can certainly understand this map suggesting that the mean weighted center moved towards the south, where the lock downs were maybe less stringent and prevention measures were possibly enforced less strong.
-
-Additionally, the trend Westward into Colorado can be understood as surges in California as a population center for the disease certainly drew the weighted center towards the West during peak periods between Jan and April.
+The WMC of Covid cases in the US looks to be weighted towards the East coast, likely explained due to the higher population of states in the Eastern US. As time passes, we can also see that there was pull from both the East and West coasts, with the WMC sitting around Illinois but spreading out as covid spread across the US. Additionally, we see a spread towards the later months of the year to the south, which could be explained by later hotspots in Florida, where restrictions and prevention measures were less severe. 
 
 ## Question 8
 
 ```{r, fig.width=12, fig.height=6, out.width="100%"}
-#Question 8
-#compute WMC Deaths
-#compute wmc
-wmc_deaths_df <- Covidspatial %>% group_by(date) %>% 
- summarize(
-    total_deaths = sum(deaths, na.rm = TRUE),
-    WMC_LONG = sum(LON * deaths, na.rm = TRUE) / sum(deaths, na.rm = TRUE),
-    WMC_LAT = sum(LAT * deaths, na.rm = TRUE) / sum(deaths, na.rm = TRUE),
-    month = format(date, "%m"), .groups = "drop")
+# Question 8
 
-#Cases Plot-red
+# Filter data
+covid_filtered <- covid_raw %>%
+  select(fips, date, cases, deaths) %>%
+  filter(!is.na(fips))
+
+# Compute daily new cases and deaths
+covid_filtered <- covid_filtered %>%
+  group_by(fips) %>%
+  arrange(date) %>%
+  mutate(
+    new_cases = pmax(cases - lag(cases), 0, na.rm = TRUE),
+    new_deaths = pmax(deaths - lag(deaths), 0, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Merge covid data with state coordinates
+covid_spatial2 <- covid_filtered %>%
+  left_join(statecoords, by = "fips") %>%
+  drop_na(LAT, LON)  
+
+# WMC for Cases
+wmc_cases_df <- covid_spatial2 %>%
+  group_by(date) %>%
+  summarize(
+    total_cases = sum(new_cases, na.rm = TRUE),
+    WMC_LON_cases = ifelse(total_cases > 0, sum(LON * new_cases, na.rm = TRUE) / total_cases, NA),
+    WMC_LAT_cases = ifelse(total_cases > 0, sum(LAT * new_cases, na.rm = TRUE) / total_cases, NA),
+    month = format(date, "%m"),
+    .groups = "drop"
+  )
+
+# WMC for Deaths
+wmc_deaths_df <- covid_spatial2 %>%
+  group_by(date) %>%
+  summarize(
+    total_deaths = sum(new_deaths, na.rm = TRUE),
+    WMC_LON_deaths = ifelse(total_deaths > 0, sum(LON * new_deaths, na.rm = TRUE) / total_deaths, NA),
+    WMC_LAT_deaths = ifelse(total_deaths > 0, sum(LAT * new_deaths, na.rm = TRUE) / total_deaths, NA),
+    month = format(date, "%m"),
+    .groups = "drop"
+  )
+
+# Cases Plot - red
 P_cases <- ggplot() +
   borders("state", fill = "gray90", colour = "white") +
-  geom_point(data = wmc_cases_df, aes(x = WMC_LONG, y = WMC_LAT, colour = month, size = total_cases), alpha = 0.5) +
-  scale_size_continuous(range = c(2,10)) +
-  labs(title = "WMC of Covid Cases", x = "Longitude", y = "Latitude", color = "Month", size = "Total Cases") + theme_minimal() + theme(plot.title = element_text(color = "red", size = 10, face = "bold"))
+  geom_point(data = wmc_cases_df, aes(x = WMC_LON_cases, y = WMC_LAT_cases, colour = month, size = total_cases), alpha = 0.5) +
+  scale_size_continuous(range = c(2, 10)) +
+  labs(title = "Weighted Mean Center of Covid Cases", x = "Longitude", y = "Latitude", color = "Month", size = "Total Cases") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "darkred", size = 7, face = "bold"))
 
-#Deaths Plot-navy
+# Deaths Plot - navy
 P_deaths <- ggplot() +
   borders("state", fill = "gray90", colour = "white") +
-  geom_point(data = wmc_deaths_df, aes(x = WMC_LONG, y = WMC_LAT, colour = month, size = total_deaths), alpha =0.5) +
-  scale_size_continuous(range = c(2,10)) +
-  labs(title = "WMC of Covid Deaths", x = "Longitude", y = "Latitude", color = "Month", size = "Total Deaths") + theme_minimal() + theme(plot.title = element_text(color = "navy", size = 10, face = "bold"))
+  geom_point(data = wmc_deaths_df, aes(x = WMC_LON_deaths, y = WMC_LAT_deaths, colour = month, size = total_deaths), alpha = 0.5) +
+  scale_size_continuous(range = c(2, 10)) +
+  labs(title = "Weighted Mean Center of Covid Deaths", x = "Longitude", y = "Latitude", color = "Month", size = "Total Deaths") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "navy", size = 7, face = "bold"))
 
-#patchwork
-library(patchwork)
-P_cases / P_deaths
+# Patchwork to combine plots
+final_plot <- P_cases + P_deaths + plot_layout(ncol = 2)
+print(final_plot)
 ```
+Here in this plot illustrating the WMC of both Cases and Deaths by Covid in the US, we can find that there was a very similar shape of origination of Covid. Additionally, we find that both cases and deaths were similarly spatially spread across the US, but there are sonme key spatial-temporal differences. One differences we find is the way that deaths is found spreading Northeast of the center. This movement of deaths can likely be explained by overwhelmed hospitals in the denser US East Coast states. Additionally, we find a later hotspot of deaths in Florida, likely explained by a large old-age retiree community and less restrictions which allowed for the spread we see as the cases also spread towards Florida during a similar period. Ulitmately both plots tell a similar story but allow for more information to be gained when comparing the two. 
