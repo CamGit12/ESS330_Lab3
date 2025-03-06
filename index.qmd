@@ -274,6 +274,7 @@ print(P_cases)
 ```
 We can see based on this map of COVID cases that the WMC origination point of covid was closer to Missouri, but the COVID outbreak hit the east coast hard, resulting in the WMC moving to the north east towards population centers on the east coast. After this, we can see a movement west, which was likely cuased by the spread of covid to the west coast, and especially California, where this population center moved the mean towards this side of the US. 
 
+## Question 8 (EC)
 
 ```{r}
 #8-
