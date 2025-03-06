@@ -6,10 +6,10 @@ author:
 format: html
 execute:
   echo: true
-output-dir: "C:/Users/laxca/Softwares/Git/ESS330_Lab3/docs"
+output-dir: docs
 knitr:
   opts_chunk:
-    fig.path: "C:/Users/laxca/Softwares/Git/ESS330_Lab3/img/"
+    fig.path: img/
     fig.show: "hold"
     message: false
     warning: false
