@@ -6,7 +6,6 @@ author:
 format: html
 execute:
   echo: true
-output-dir: docs
 ---
 
 # Lab 03 Covid
